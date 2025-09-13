@@ -70,7 +70,7 @@ export function Departments() {
     try {
       const response = await apiService.deleteDepartment(id);
       if (response.success) {
-        await fetchDepartments(); // Refresh the list
+        await fetchDepartments();
         setIsDeleteModalOpen(false);
         setDepartmentToDelete(null);
       }
@@ -99,8 +99,8 @@ export function Departments() {
         setSelectedDepartment(response.data);
         setIsDetailsModalOpen(true);
       }
-    } catch (err) {
-      console.error("Error fetching department details:", err);
+    } catch (error) {
+      console.error("Error fetching department details:", error);
       alert('Failed to load department details. Please try again.');
     }
   };
@@ -179,7 +179,6 @@ export function Departments() {
                   </button>
 
                   <button
-                    onClick={() => handleDeleteDepartment(dept._id)}
                     onClick={() => handleDeleteClick(dept)}
                     className="text-gray-400 hover:text-red-600"
                   >
