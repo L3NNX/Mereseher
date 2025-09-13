@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Users, Edit, Trash2, Plus } from 'lucide-react';
 import DepartmentForm from './DepartmentForm';
+import { DepartmentDetailsModal } from './DepartmentDetailsModal';
+import { DeleteConfirmationModal } from './DeleteConfirmationModal';
 import { apiService } from '../services/api';
 import type { Department, CreateDepartmentRequest } from '../types/api';
 
@@ -11,6 +13,11 @@ export function Departments() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [editingDepartment, setEditingDepartment] = useState<Department | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<Department | null>(null);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [departmentToDelete, setDepartmentToDelete] = useState<Department | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchDepartments();
@@ -59,18 +66,19 @@ export function Departments() {
   };
 
   const handleDeleteDepartment = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this department?')) {
-      return;
-    }
-
+    setIsDeleting(true);
     try {
       const response = await apiService.deleteDepartment(id);
       if (response.success) {
         await fetchDepartments(); // Refresh the list
+        setIsDeleteModalOpen(false);
+        setDepartmentToDelete(null);
       }
     } catch (error) {
       console.error('Error deleting department:', error);
       alert('Failed to delete department. Please try again.');
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -88,14 +96,25 @@ export function Departments() {
     try {
       const response = await apiService.getDepartment(id);
       if (response.success) {
-        console.log("Department details:", response.data);
-        alert(JSON.stringify(response.data, null, 2)); // for now just show alert
+        setSelectedDepartment(response.data);
+        setIsDetailsModalOpen(true);
       }
     } catch (err) {
       console.error("Error fetching department details:", err);
+      alert('Failed to load department details. Please try again.');
     }
   };
 
+  const handleDeleteClick = (dept: Department) => {
+    setDepartmentToDelete(dept);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (departmentToDelete) {
+      handleDeleteDepartment(departmentToDelete._id);
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -161,6 +180,7 @@ export function Departments() {
 
                   <button
                     onClick={() => handleDeleteDepartment(dept._id)}
+                    onClick={() => handleDeleteClick(dept)}
                     className="text-gray-400 hover:text-red-600"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -220,6 +240,28 @@ export function Departments() {
         onSubmit={handleCreateDepartment}
         isLoading={isSubmitting}
         initialData={editingDepartment || undefined} // 👈 NEW
+      />
+
+      <DepartmentDetailsModal
+        department={selectedDepartment}
+        isOpen={isDetailsModalOpen}
+        onClose={() => {
+          setIsDetailsModalOpen(false);
+          setSelectedDepartment(null);
+        }}
+      />
+
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setDepartmentToDelete(null);
+        }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Department"
+        message="Are you sure you want to delete this department? This action will permanently remove all department data."
+        itemName={departmentToDelete?.name}
+        isLoading={isDeleting}
       />
     </div>
   );
